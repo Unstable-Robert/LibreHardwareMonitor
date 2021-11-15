@@ -349,7 +349,7 @@ namespace LibreHardwareMonitor.Utilities
                         if (idList.ContainsKey(sNode.Sensor.Identifier.ToString()))
                         {
                             //possible duplicates will have to check later
-                            if (!hardwareOnly) idList.Add(sNode.Sensor.Identifier.ToString() + "**", sNode.Sensor.Name);
+                            if (!hardwareOnly) idList.Add(sNode.Sensor.Identifier.ToString() + "Duplicate", sNode.Sensor.Name);
                         }
                         else
                         {
@@ -359,7 +359,7 @@ namespace LibreHardwareMonitor.Utilities
                         {
                             if (idList.ContainsKey(key))
                             {
-                                if (!hardwareOnly) idList.Add(key + "SS", childSNodes[key]);
+                                if (!hardwareOnly) idList.Add(key + "Duplicate", childSNodes[key]);
                             }
                             else
                             {
@@ -378,17 +378,17 @@ namespace LibreHardwareMonitor.Utilities
                     if (idList.ContainsKey(hNode.Hardware.Identifier.ToString()))
                     {
                         //possible duplicates will have to check later
-                        idList.Add(hNode.Hardware.Identifier.ToString() + "**", hNode.Hardware.Name);
+                        if (hardwareOnly) idList.Add(hNode.Hardware.Identifier.ToString() + "Duplicate", hNode.Hardware.Name);
                     }
                     else
                     {
-                        idList.Add(hNode.Hardware.Identifier.ToString(), "Hardware Name:" + hNode.Hardware.Name);
+                        if (hardwareOnly) idList.Add(hNode.Hardware.Identifier.ToString(), hNode.Hardware.Name);
                     }
                     foreach (string key in childHNodes.Keys)
                     {
                         if (idList.ContainsKey(key))
                         {
-                            if (!hardwareOnly) idList.Add(key + "HH", childHNodes[key]);
+                            if (!hardwareOnly) idList.Add(key + "Duplicate", childHNodes[key]);
                         } else
                         {
                             if (!hardwareOnly) idList.Add(key, childHNodes[key]);
@@ -405,7 +405,7 @@ namespace LibreHardwareMonitor.Utilities
                     {
                         if (idList.ContainsKey(key))
                         {
-                            if (!hardwareOnly) idList.Add(key + "NN", childNNodes[key]);
+                            if (!hardwareOnly) idList.Add(key + "Duplicate", childNNodes[key]);
                         }
                         else
                         {
