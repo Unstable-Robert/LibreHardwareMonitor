@@ -175,6 +175,26 @@ namespace LibreHardwareMonitor.Utilities
             return null;
         }
 
+        public HardwareNode FindHardware(Node node, string id)
+        {
+            if (node is HardwareNode sNode)
+            {
+                if (sNode.Hardware.Identifier.ToString() == id)
+                    return sNode;
+            }
+
+            foreach (Node child in node.Nodes)
+            {
+                HardwareNode s = FindHardware(child, id);
+                if (s != null)
+                {
+                    return s;
+                }
+            }
+
+            return null;
+        }
+
         public void SetSensorControlValue(SensorNode sNode, string value)
         {
             if (sNode.Sensor.Control == null)
@@ -220,7 +240,7 @@ namespace LibreHardwareMonitor.Utilities
 
                     if (sNode == null)
                     {
-                        throw new ArgumentException("Unknown id " + dict["id"] + " specified");
+                        throw new ArgumentException("Unknown sensor id " + dict["id"] + " specified");
                     }
 
                     switch (dict["action"])
@@ -234,9 +254,71 @@ namespace LibreHardwareMonitor.Utilities
                             result["value"] = sNode.Sensor.Value;
                             result["format"] = sNode.Format;
                             break;
+
                         default:
                             throw new ArgumentException("Unknown action type " + dict["action"]);
                     }
+                }
+                else if (dict.ContainsKey("hw"))
+                {
+                    HardwareNode hNode = FindHardware(_root, dict["hw"]);
+
+                    if (hNode == null)
+                    {
+                        throw new ArgumentException("Unkown hardware id " + dict["hw"] + " Specified");
+                    }
+                    switch (dict["action"])
+                    {
+                        case "Set" when dict.ContainsKey("value"):
+                            break;
+                        case "Set":
+                            throw new ArgumentNullException("No value provided");
+                        case "Get":
+                            IDictionary<string, string> idList = getNodeKeys(hNode, false);
+
+                            var keys = "[";
+                            int last = idList.Keys.Count;
+                            foreach (string key in idList.Keys)
+                            {
+                                keys = keys + "{ \" " + key + " \" : \"" + idList[key] + "\" }";
+                                last--;
+                                if (last > 0) keys = keys + ", ";
+                            }
+                            keys = keys + "]";
+
+                            result["value"] = keys;
+                        break;
+
+                        default:
+                            throw new ArgumentException("Unknown action type " + dict["action"]);
+                    }
+                }
+                else if (dict.ContainsKey("list"))
+                {
+                    IDictionary<string, string> idList = new Dictionary<string, string>();
+                    switch (dict["list"])
+                    {
+                        case "all":
+                            idList = getNodeKeys(_root, false);
+                        break;
+                        case "hw":
+                            idList = getNodeKeys(_root, true);
+                        break;
+                        default:
+                        break;
+
+                    }
+                    var keys = "[";
+                    int last = idList.Keys.Count;
+                    foreach (string key in idList.Keys)
+                    {
+                        keys = keys + "{ \" " + key + " \" : \"" + idList[key] + "\" }";
+                        last--;
+                        if (last > 0) keys = keys + ", ";
+                    }
+                    keys = keys + "]";
+
+                    result["value"] = keys;
                 }
                 else
                 {
@@ -249,6 +331,94 @@ namespace LibreHardwareMonitor.Utilities
             }
         }
 
+        public IDictionary<string, string> getNodeKeys(Node startNode, bool hardwareOnly)
+        {
+            IDictionary<string, string> idList = new Dictionary<string, string>();
+
+            foreach (Node child in startNode.Nodes)
+            {
+                switch (child)
+                {
+                    case SensorNode:
+                        SensorNode sNode = child as SensorNode;
+                        IDictionary<string, string> childSNodes = new Dictionary<string, string>();
+                        if (sNode.Nodes.Count > 0)
+                        {
+                            childSNodes = getNodeKeys(sNode, false);
+                        }
+                        if (idList.ContainsKey(sNode.Sensor.Identifier.ToString()))
+                        {
+                            //possible duplicates will have to check later
+                            if (!hardwareOnly) idList.Add(sNode.Sensor.Identifier.ToString() + "**", sNode.Sensor.Name);
+                        }
+                        else
+                        {
+                            if (!hardwareOnly) idList.Add(sNode.Sensor.Identifier.ToString(), sNode.Sensor.Name);
+                        }
+                        foreach (string key in childSNodes.Keys)
+                        {
+                            if (idList.ContainsKey(key))
+                            {
+                                if (!hardwareOnly) idList.Add(key + "SS", childSNodes[key]);
+                            }
+                            else
+                            {
+                                if (!hardwareOnly) idList.Add(key, childSNodes[key]);
+                            }
+                        }
+
+                    break;
+                    case HardwareNode: //
+                    HardwareNode hNode = child as HardwareNode;
+                    IDictionary<string, string> childHNodes = new Dictionary<string, string>();
+                    if (hNode.Nodes.Count > 0)
+                    {
+                        childHNodes = getNodeKeys(hNode, false);
+                    }
+                    if (idList.ContainsKey(hNode.Hardware.Identifier.ToString()))
+                    {
+                        //possible duplicates will have to check later
+                        idList.Add(hNode.Hardware.Identifier.ToString() + "**", hNode.Hardware.Name);
+                    }
+                    else
+                    {
+                        idList.Add(hNode.Hardware.Identifier.ToString(), "Hardware Name:" + hNode.Hardware.Name);
+                    }
+                    foreach (string key in childHNodes.Keys)
+                    {
+                        if (idList.ContainsKey(key))
+                        {
+                            if (!hardwareOnly) idList.Add(key + "HH", childHNodes[key]);
+                        } else
+                        {
+                            if (!hardwareOnly) idList.Add(key, childHNodes[key]);
+                        }
+                    } 
+                    break;
+                    default:
+                    IDictionary<string, string> childNNodes = new Dictionary<string, string>();
+                    if (child.Nodes.Count > 0)
+                    {
+                        childNNodes = getNodeKeys(child, false);
+                    }
+                    foreach (string key in childNNodes.Keys)
+                    {
+                        if (idList.ContainsKey(key))
+                        {
+                            if (!hardwareOnly) idList.Add(key + "NN", childNNodes[key]);
+                        }
+                        else
+                        {
+                            if (!hardwareOnly) idList.Add(key, childNNodes[key]);
+                        }
+                    }
+                    
+                    break;
+                }
+            }
+
+            return idList;
+        }
         //Handles http POST requests in a REST like manner.
         //Currently the only supported base URL is http://localhost:8085/Sensor.
         private string HandlePostRequest(HttpListenerRequest request)
