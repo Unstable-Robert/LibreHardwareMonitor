@@ -22,6 +22,8 @@ using System.Web;
 using LibreHardwareMonitor.Hardware;
 using LibreHardwareMonitor.UI;
 using Newtonsoft.Json.Linq;
+using Newtonsoft.Json;
+
 
 namespace LibreHardwareMonitor.Utilities
 {
@@ -275,18 +277,7 @@ namespace LibreHardwareMonitor.Utilities
                             throw new ArgumentNullException("No value provided");
                         case "Get":
                             IDictionary<string, string> idList = getNodeKeys(hNode, false);
-
-                            var keys = "[";
-                            int last = idList.Keys.Count;
-                            foreach (string key in idList.Keys)
-                            {
-                                keys = keys + "{ \" " + key + " \" : \"" + idList[key] + "\" }";
-                                last--;
-                                if (last > 0) keys = keys + ", ";
-                            }
-                            keys = keys + "]";
-
-                            result["value"] = keys;
+                            result["value"] = JsonConvert.SerializeObject(idList);
                         break;
 
                         default:
@@ -308,17 +299,8 @@ namespace LibreHardwareMonitor.Utilities
                         break;
 
                     }
-                    var keys = "[";
-                    int last = idList.Keys.Count;
-                    foreach (string key in idList.Keys)
-                    {
-                        keys = keys + "{ \" " + key + " \" : \"" + idList[key] + "\" }";
-                        last--;
-                        if (last > 0) keys = keys + ", ";
-                    }
-                    keys = keys + "]";
 
-                    result["value"] = keys;
+                    result["value"] = JsonConvert.SerializeObject(idList);
                 }
                 else
                 {
